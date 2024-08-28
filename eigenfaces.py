@@ -3,7 +3,7 @@ from sklearn.model_selection import train_test_split
 from sklearn.metrics import classification_report
 import numpy as np
 import sklearn
-
+import torch
 
 # Download the data, if not already on disk and load it as numpy arrays
 lfw_people = fetch_lfw_people(min_faces_per_person=70, resize=0.4)
@@ -25,22 +25,40 @@ print("n_classes: %d" % n_classes)
 
 # Split into a training set and a test set using a stratified k fold
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.25, random_state=42)
+
+# USE TORCH
+X_train = torch.from_numpy(X_train)
+X_test = torch.from_numpy(X_test)
+y_train = torch.from_numpy(y_train)
+y_test = torch.from_numpy(y_test)
+
 # Compute a PCA (eigenfaces) on the face dataset (treated as unlabeled
 # dataset): unsupervised feature extraction / dimensionality reduction
 n_components = 150
 
 # Center data
-mean = np.mean(X_train, axis=0)
+# mean = np.mean(X_train, axis=0)
+# USE TORCH
+mean = torch.mean(X_train, axis=0)
+
 X_train -= mean
 X_test -= mean
+
 #Eigen-decomposition
 U, S, V = np.linalg.svd(X_train, full_matrices=False)
+# USE TORCH
+U, S, V = torch.linalg.svd(X_train, full_matrices=False)
 components = V[:n_components]
 eigenfaces = components.reshape((n_components, h, w))
+
 #project into PCA subspace
-X_transformed = np.dot(X_train, components.T)
+# X_transformed = np.dot(X_train, components.T)
+# USE TORCH
+X_transformed = torch.matmul(X_train, components.T)
 print(X_transformed.shape)
-X_test_transformed = np.dot(X_test, components.T)
+# X_test_transformed = np.dot(X_test, components.T)
+# USE TORCH
+X_test_transformed = torch.matmul(X_test, components.T)
 print(X_test_transformed.shape)
 
 import matplotlib.pyplot as plt

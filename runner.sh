@@ -4,7 +4,7 @@
 #SBATCH --ntasks-per-node=1
 #SBATCH --cpus-per-task=1
 #SBATCH --gres=gpu:a100
-#SBATCH --job-name=torch_dawnbench
-#SBATCH -o torch_dawnbench.out
+#SBATCH --job-name=test_dataloader
+#SBATCH -o test_dataloader.out
 conda activate torch
-python CIFAR10.py
+python test_dataloader.py

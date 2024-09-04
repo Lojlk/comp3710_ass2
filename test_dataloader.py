@@ -26,6 +26,7 @@ print("Num GPUs Available: ", len(tf.config.experimental.list_physical_devices('
 #check current directory and import images
 print(os.getcwd()) # the data file is not in the current directory
 filelist=glob.glob('/home/groups/comp3710/OASIS/keras_png_slices_train/*.png') 
+# or try H: 
 train_size = len(filelist)
 print(train_size)
 images=np.array([np.array(Image.open(i),dtype="float32") for i in filelist[0:train_size]])

@@ -133,7 +133,7 @@ def train_step(images):
 
 #########################################################################
 #Define training loop
-EPOCHS = 200
+EPOCHS = 50 # TODO: Change the number of epochs
 batch_per_epoch=np.round(images.shape[0]/batch_size)
 
 #number of sample images to display

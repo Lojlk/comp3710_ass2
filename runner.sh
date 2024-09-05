@@ -6,5 +6,5 @@
 #SBATCH --gres=gpu:a100
 #SBATCH --job-name=train_GAN
 #SBATCH -o Result_GAN.out
-conda activate torch
-python runGAN.py
+conda activate demo
+python test_dataloader.py

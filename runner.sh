@@ -4,7 +4,7 @@
 #SBATCH --ntasks-per-node=1
 #SBATCH --cpus-per-task=1
 #SBATCH --gres=gpu:a100
-#SBATCH --job-name=test_dataloader
-#SBATCH -o test_dataloader.out
+#SBATCH --job-name=train_GAN
+#SBATCH -o Result_GAN.out
 conda activate torch
-python test_dataloader.py
+python runGAN.py

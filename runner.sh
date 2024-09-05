@@ -7,4 +7,4 @@
 #SBATCH --job-name=train_GAN
 #SBATCH -o Result_GAN.out
 conda activate demo
-python test_dataloader.py
+python runGAN.py

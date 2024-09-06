@@ -108,7 +108,7 @@ discriminator_optimiser = tf.keras.optimizers.Adam(learning_rate=0.0001)
 
 ########################################################################
 #Define training function
-batch_size = 10
+batch_size = 10 # 32 
 
 #Training function
 @tf.function
@@ -134,7 +134,7 @@ def train_step(images):
 #########################################################################
 #Define training loop
 EPOCHS = 50 # TODO: Change the number of epochs
-batch_per_epoch=np.round(images.shape[0]/batch_size)
+batch_per_epoch=np.round(images.shape[0]/batch_size) # 9566 / 10
 
 #number of sample images to display
 n_samples=5
@@ -151,7 +151,7 @@ def train(dataset, epochs):
         count=0
         for image_batch in dataset:
             d_loss,g_loss=train_step(image_batch)
-            if (count) % 25 == 0:
+            if (count) % 25 == 0: # WHY 25? 
                 print('>%d, %d/%d, d=%.8f, g=%.8f' % (epoch, count, batch_per_epoch, d_loss, g_loss))
             if (count) % 350 == 0:
                 noise = tf.random.normal([n_samples, latent_dim])
@@ -161,15 +161,19 @@ def train(dataset, epochs):
                     # define subplot
                     pyplot.subplot(5, 5, 1 + i)
                     pyplot.axis('off')
-                    # plot single image
-                    pyplot.imshow(x_fake[i, :, :,0],cmap='gray')
-                pyplot.savefig('0511 Epoch{0} batch{1}.png'.format(epoch,count))
+                    pyplot.imshow(x_fake[i, :, :,0],cmap='gray') # plot single image 
+                # saves an image every 350 increment 
+                pyplot.savefig('0511 Epoch{0} batch{1}.png'.format(epoch,count)) 
                 pyplot.show()
                 
                 pyplot.close()
-                #just save one model version per epoch
-                filename = 'generator_model_%03d.h5' % (epoch) 
-                g_model.save(filename)
+
+                # TODO: Saving model take too much space
+                # just save one model version per epoch
+                # USEFUL too see which 
+                # filename = 'generator_model_%03d.h5' % (epoch) 
+                # g_model.save(filename)
+
             count=count+1
 
 train(train_dataset, EPOCHS)

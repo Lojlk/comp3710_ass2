@@ -108,7 +108,7 @@ discriminator_optimiser = tf.keras.optimizers.Adam(learning_rate=0.0001)
 
 ########################################################################
 #Define training function
-batch_size = 10 # 32 
+batch_size = 10 # 32 64 128
 
 #Training function
 @tf.function
@@ -133,7 +133,7 @@ def train_step(images):
 
 #########################################################################
 #Define training loop
-EPOCHS = 50 # TODO: Change the number of epochs
+EPOCHS = 35 # TODO: Change the number of epochs (50 was too long)
 batch_per_epoch=np.round(images.shape[0]/batch_size) # 9566 / 10
 
 #number of sample images to display

@@ -22,31 +22,44 @@ from skimage.metrics import structural_similarity as ssim
 from GANmodelutils import define_generator, define_discriminator
 
 
-#check if GPU is available
+# check if GPU is available
 tf.config.experimental.list_physical_devices('GPU')
 print("Num GPUs Available: ", len(tf.config.experimental.list_physical_devices('GPU')))
 
-#check current directory and import images
+# check current directory and import images
 print(os.getcwd()) 
+
+# Use glob to get a list of all PNG image files in the specified directory
 filelist=glob.glob('/home/groups/comp3710/OASIS/keras_png_slices_train/*.png')  
+
+# Get the number of images in the dataset
 train_size = len(filelist)
 print(train_size)
+
+# Load the images and convert them into a NumPy array
+# Here, we open each image file, convert it into a NumPy array of float32 type, and store it in a list
+# We then convert this list into a 4D NumPy array (batch_size, height, width, channels)
 images=np.array([np.array(Image.open(i),dtype="float32") for i in filelist[0:train_size]])
-print('training images',images.shape)
+
+# Check the shape of the loaded images to ensure they are loaded correctly
+# This should print the shape as (train_size, height, width) 
+print('training images',images.shape) # dimension of each image is 256 x 256
 
 #######################################################################
-#Preprocessing
-#normalise pixel values from [0,255] to [-1,1]
+# Preprocessing
+# Normalise pixel values from [0,255] to [-1,1]
+# (GANs typically work better when input values are within this range) 
 images=(images - 127.5) / 127.5
 
-#make into 4D array
+# Add a new axis to the image array to make it a 4D array (batch_size, height, width, channels)
+# The new axis represents the channels, since the images are grayscale, it will have only 1 channel.
 images=images[:,:,:,np.newaxis]
 
-#check shape
+# check shape
 print(images.shape)
 
 #######################################################################
-#Check the brains, plot the first 10
+# Visualize the first 10 brain MRI images from the dataset
 pyplot.figure(figsize=(25,25))
 for i in range(10):
     # define subplot
@@ -55,80 +68,103 @@ for i in range(10):
     pyplot.axis('off')
     # plot raw pixel data
     pyplot.imshow(images[i,:,:,0],cmap="gray")
+
 pyplot.show()
+pyplot.savefig("First_10_dataset.png")
 
 ########################################################################
-#Call the generator and discriminator models
+# Call the generator and discriminator models
 
-g_model = define_generator()
+g_model = define_generator() # Initialize the generator model
 
-d_model = define_discriminator()
+d_model = define_discriminator() # Initialize the discriminator model
 
-########Visualising generated images############
+######## Visualising generated images############
 #choose the number of samples to visualise
 n_samples=5
 #define number of points in latent space
 latent_dim=256
 
 
-#generate noise according to number of samples specified with latent_dim previously defined as 256
+# Generate random noise according to the number of samples specified
+# The noise is a random vector from a normal distribution, with shape (n_samples, latent_dim)
 noise = tf.random.normal([n_samples, latent_dim])
 
-#generate fake images
+# Generate fake images from the generator using the random noise as input
 x_fake = g_model(noise,training=False)
+
+# Visualize the generated images
 pyplot.figure(figsize=(25,25))
+
 for i in range(n_samples):
     # define subplot
     pyplot.subplot(5, 5, 1 + i)
     pyplot.axis('off')
     # plot single image
     pyplot.imshow(x_fake[i, :, :,0],cmap='gray')
+
 pyplot.show()
+pyplot.savefig("Fake_img_from_generator.png")
 pyplot.close()
 
 ########################################################################
-#Define loss functions
+# Binary cross-entropy loss function for real/fake classification
 cross_entropy = tf.keras.losses.BinaryCrossentropy(from_logits=True)
 
+# Discriminator loss function 
 def discriminator_loss(real_output, fake_output):
+    # Calculate loss on real images (compare real_output to a target of ones)
     real_loss = cross_entropy(tf.ones_like(real_output), real_output)
+    # Calculate loss on fake images (compare fake_output to a target of zeros)
     fake_loss = cross_entropy(tf.zeros_like(fake_output), fake_output)
+    # Combine the two losses (real and fake)
     total_loss = real_loss + fake_loss
     return total_loss
 
+# Generator loss function
 def generator_loss(fake_output):
+    # Calculate loss on fake images
+    # (the generator wants the discriminator to think they are real, hence target ones)
     return cross_entropy(tf.ones_like(fake_output), fake_output)
 
 ########################################################################
-#Define optimisers
-
+# Define optimisers
+# Adam optimizers with different learning rates for the generator and discriminator
 generator_optimiser = tf.keras.optimizers.Adam(learning_rate=0.0002)
-
 discriminator_optimiser = tf.keras.optimizers.Adam(learning_rate=0.0001)
 
 ########################################################################
-#Define training function
-batch_size = 10 # 32 64 128
+# Define training function
+batch_size = 10 # 32 64 128 
 
-#Training function
+# Define the training step
 @tf.function
 def train_step(images):
+    # Generate random noise for the generator to create fake images
     noise = tf.random.normal([batch_size, latent_dim])
 
+    # Record gradients for both the generator and discriminator
     with tf.GradientTape() as gen_tape, tf.GradientTape() as disc_tape:
+        # Generate fake images from the random noise
         generated_images = g_model(noise, training=True)
 
+        # Get discriminator's classification of real and fake images
         real_output = d_model(images, training=True)
         fake_output = d_model(generated_images, training=True)
 
+        # Calculate the loss for the generator and discriminator
         g_loss = generator_loss(fake_output)
         d_loss = discriminator_loss(real_output, fake_output)
 
+    # Calculate gradients for both models
     gradients_of_generator = gen_tape.gradient(g_loss, g_model.trainable_variables)
     gradients_of_discriminator = disc_tape.gradient(d_loss, d_model.trainable_variables)
 
+    # Apply the gradients to update the generator and discriminator optimizers
     generator_optimiser.apply_gradients(zip(gradients_of_generator, g_model.trainable_variables))
     discriminator_optimiser.apply_gradients(zip(gradients_of_discriminator, d_model.trainable_variables))
+    
+    # Return the discriminator and generator losses for tracking
     return d_loss, g_loss
 
 #########################################################################

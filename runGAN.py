@@ -79,7 +79,7 @@ g_model = define_generator() # Initialize the generator model
 
 d_model = define_discriminator() # Initialize the discriminator model
 
-######## Visualising generated images############
+######## Visualising generated images before training############
 #choose the number of samples to visualise
 n_samples=5
 #define number of points in latent space
@@ -169,52 +169,75 @@ def train_step(images):
 
 #########################################################################
 #Define training loop
-EPOCHS = 50 # TODO: Change the number of epochs (50 was too long)
+EPOCHS = 3  # Define the number of epochs (adjustable based on model performance)
 batch_per_epoch=np.round(images.shape[0]/batch_size) # 9566 / 10
 
-#number of sample images to display
+# Number of sample images to display for visualization during training
 n_samples=5
 
+# Total number of images in the dataset
 total_size=images.shape[0]
 
-
 # Batch and shuffle the data
+# TensorFlow's Dataset API is used to slice the dataset into batches and shuffle it 
 train_dataset = tf.data.Dataset.from_tensor_slices(images).shuffle(total_size).batch(batch_size)
 
+# Initialize lists to store average losses per epoch
+g_losses_per_epoch = []
+d_losses_per_epoch = []
+
+# Function that executes the training loop over a specified number of epochs
 def train(dataset, epochs):
-    
+    # Iterate over the number of epochs
     for epoch in range(epochs):
-        count=0
-        for image_batch in dataset:
-            d_loss,g_loss=train_step(image_batch)
-            if (count) % 25 == 0: # WHY 25? 
+        g_epoch_loss = 0  # Initialize generator loss for the current epoch
+        d_epoch_loss = 0  # Initialize discriminator loss for the cu
+        count = 0 # Counter to track batches within each epoch
+
+        for image_batch in dataset: # For each batch in the dataset
+            # Train the model on this batch 
+            d_loss, g_loss=train_step(image_batch)
+
+            # Append losses for each batch
+            g_epoch_loss += g_loss.numpy()  # Accumulate generator loss
+            d_epoch_loss += d_loss.numpy()  # Accumulate discriminator loss
+
+            if (count) % 25 == 0: # Every 25 batches, print the progress
                 print('>%d, %d/%d, d=%.8f, g=%.8f' % (epoch, count, batch_per_epoch, d_loss, g_loss))
-            if (count) % 350 == 0:
-                noise = tf.random.normal([n_samples, latent_dim])
-                x_fake = g_model(noise,training=False)
+            
+            if (count) % 350 == 0: # Every 350 batches, generate images for visualization
+                noise = tf.random.normal([n_samples, latent_dim]) # Generate noise for the generator
+                x_fake = g_model(noise,training=False) # Generate fake images from the noise
                 pyplot.figure(figsize=(25,25))
                 for i in range(n_samples):
                     # define subplot
                     pyplot.subplot(5, 5, 1 + i)
                     pyplot.axis('off')
                     pyplot.imshow(x_fake[i, :, :,0],cmap='gray') # plot single image 
+                
                 # saves an image every 350 increment 
                 pyplot.savefig('0511 Epoch{0} batch{1}.png'.format(epoch,count)) 
                 pyplot.show()
-                
                 pyplot.close()
 
-                # TODO: Saving model take too much space
-                # just save one model version per epoch
-                # USEFUL too see which 
+                # Optional: Save the model after each epoch
+                # Saving after each batch may use too much disk space, so this can be adjusted
                 # filename = 'generator_model_%03d.h5' % (epoch) 
                 # g_model.save(filename)
 
             count=count+1
 
+        # Calculate average losses for the epoch
+        avg_g_loss = g_epoch_loss / count
+        avg_d_loss = d_epoch_loss / count
+
+        # Append average losses to the lists
+        g_losses_per_epoch.append(avg_g_loss)
+        d_losses_per_epoch.append(avg_d_loss)
+
 train(train_dataset, EPOCHS)
 
-#######look at generator images########
+####### Look at generator images after training ########
 n_samples=5
 noise = tf.random.normal([n_samples, latent_dim])
 x_fake = g_model(noise,training=False)
@@ -227,27 +250,57 @@ for i in range(n_samples):
     # plot single image
     pyplot.imshow(x_fake[i, :, :,0],cmap='gray')
 pyplot.show()
+pyplot.savefig('generated_img_after_train.png')
 pyplot.close()
 
-############SSIM#################
-#since calculating SSIM for one image is computationally expensive, just choose the index of one image to calculate
-#whichfake is the index of the sample image
+# Plot generator and discriminator losses over epochs
+def plot_losses_per_epoch(g_losses_per_epoch, d_losses_per_epoch, epochs):
+    pyplot.figure(figsize=(10, 5))
+    
+    # Plot generator losses
+    pyplot.plot(range(1, epochs + 1), g_losses_per_epoch, label='Generator Loss')
+    
+    # Plot discriminator losses
+    pyplot.plot(range(1, epochs + 1), d_losses_per_epoch, label='Discriminator Loss')
+    
+    # Add labels, title, and legend
+    pyplot.title('Generator and Discriminator Losses Over Epochs')
+    pyplot.xlabel('Epoch')
+    pyplot.ylabel('Loss')
+    pyplot.legend()  # Show the legend to distinguish the two losses
+    
+    # Display the plot
+    pyplot.show()
+    pyplot.savefig('generator_discriminator_losses.png')
+    pyplot.close()
+
+# Call the plot function after training is complete
+plot_losses_per_epoch(g_losses_per_epoch, d_losses_per_epoch, EPOCHS)
+
+
+############ SSIM #################
+# since calculating SSIM for one image is computationally expensive, just choose the index of one image to calculate
+# whichfake is the index of the sample image
 whichfake=4
 
-#create array to store SSIM values
+# Create an array to store SSIM values for each training image
 ssim_noise=[]
 
-#calculate SSIM for each training image
+# Loop through all training images and calculate the SSIM between 
+# each training image and the generated image
 for i in range(images.shape[0]):
     ssim_noise.append( ssim(images[i,:,:,0], x_fake.numpy()[whichfake,:,:,0], 
                       data_range=np.max(x_fake.numpy()[whichfake,:,:,0]) - np.min(x_fake.numpy()[whichfake,:,:,0])))
 
-#plot generated image and OASIS image that corresponds to the highest SSIM value
+# Display the generated image with the highest SSIM score
 fig, axs = pyplot.subplots(2, 1, constrained_layout=True,figsize=(10,10))
 axs[0].imshow(x_fake[whichfake, :, :, 0],cmap="gray")
 axs[0].set_title('Generated image with max SSIM: {:.4f}'.format(np.max(ssim_noise)))
 
+# Display the corresponding training image with the highest SSIM score
 axs[1].imshow(images[ssim_noise.index(np.max(ssim_noise)), :, :, 0],cmap="gray")
 axs[1].set_title('Closest OASIS image {:.0f}'.format(ssim_noise.index(np.max(ssim_noise))))
 
 pyplot.show()
+pyplot.savefig('Best_gen_img_vs_train_img.png')
+pyplot.close()

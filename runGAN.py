@@ -18,7 +18,6 @@ import sys
 from skimage import metrics
 from skimage.metrics import structural_similarity as ssim
 
-# from modelscript import define_generator, define_discriminator
 from GANmodelutils import define_generator, define_discriminator
 
 
@@ -169,7 +168,7 @@ def train_step(images):
 
 #########################################################################
 #Define training loop
-EPOCHS = 3  # Define the number of epochs (adjustable based on model performance)
+EPOCHS = 50 # Define the number of epochs (adjustable based on model performance)
 batch_per_epoch=np.round(images.shape[0]/batch_size) # 9566 / 10
 
 # Number of sample images to display for visualization during training

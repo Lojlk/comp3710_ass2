@@ -58,7 +58,7 @@ images=images[:,:,:,np.newaxis]
 print(images.shape)
 
 #######################################################################
-# Visualize the first 10 brain MRI images from the dataset
+# Just Visualize the first 10 brain MRI images from the dataset, nothing significant
 pyplot.figure(figsize=(25,25))
 for i in range(10):
     # define subplot
@@ -78,7 +78,7 @@ g_model = define_generator() # Initialize the generator model
 
 d_model = define_discriminator() # Initialize the discriminator model
 
-######## Visualising generated images before training############
+######## Visualising generated images before training (not important)############
 #choose the number of samples to visualise
 n_samples=5
 #define number of points in latent space
@@ -181,9 +181,9 @@ total_size=images.shape[0]
 # TensorFlow's Dataset API is used to slice the dataset into batches and shuffle it 
 train_dataset = tf.data.Dataset.from_tensor_slices(images).shuffle(total_size).batch(batch_size)
 
-# Initialize lists to store average losses per epoch
-g_losses_per_epoch = []
-d_losses_per_epoch = []
+# Initialize lists to store losses per batch across all epochs
+g_losses_per_batch = []
+d_losses_per_batch = []
 
 # Function that executes the training loop over a specified number of epochs
 def train(dataset, epochs):
@@ -197,9 +197,9 @@ def train(dataset, epochs):
             # Train the model on this batch 
             d_loss, g_loss=train_step(image_batch)
 
-            # Append losses for each batch
-            g_epoch_loss += g_loss.numpy()  # Accumulate generator loss
-            d_epoch_loss += d_loss.numpy()  # Accumulate discriminator loss
+            # Append losses for each batch (no averaging)
+            g_losses_per_batch.append(g_loss.numpy())  # Store generator loss
+            d_losses_per_batch.append(d_loss.numpy())  # Store discriminator loss
 
             if (count) % 25 == 0: # Every 25 batches, print the progress
                 print('>%d, %d/%d, d=%.8f, g=%.8f' % (epoch, count, batch_per_epoch, d_loss, g_loss))
@@ -226,13 +226,13 @@ def train(dataset, epochs):
 
             count=count+1
 
-        # Calculate average losses for the epoch
-        avg_g_loss = g_epoch_loss / count
-        avg_d_loss = d_epoch_loss / count
+        # # Calculate average losses for the epoch
+        # avg_g_loss = g_epoch_loss / count
+        # avg_d_loss = d_epoch_loss / count
 
-        # Append average losses to the lists
-        g_losses_per_epoch.append(avg_g_loss)
-        d_losses_per_epoch.append(avg_d_loss)
+        # # Append average losses to the lists
+        # g_losses_per_epoch.append(avg_g_loss)
+        # d_losses_per_epoch.append(avg_d_loss)
 
 train(train_dataset, EPOCHS)
 
@@ -274,7 +274,29 @@ def plot_losses_per_epoch(g_losses_per_epoch, d_losses_per_epoch, epochs):
     pyplot.close()
 
 # Call the plot function after training is complete
-plot_losses_per_epoch(g_losses_per_epoch, d_losses_per_epoch, EPOCHS)
+# plot_losses_per_epoch(g_losses_per_epoch, d_losses_per_epoch, EPOCHS)
+
+# Plot generator and discriminator losses over time
+def plot_losses(g_losses, d_losses):
+    pyplot.figure(figsize=(10, 5))
+    
+    # Plot the generator losses
+    pyplot.plot(g_losses, label='Generator Loss')
+    
+    # Plot the discriminator losses
+    pyplot.plot(d_losses, label='Discriminator Loss')
+    
+    # Add labels and title
+    pyplot.title('Generator and Discriminator Loss During Training')
+    pyplot.xlabel('Batch number')
+    pyplot.ylabel('Loss')
+    pyplot.legend()  # Show the legend to distinguish the two losses
+    pyplot.savefig('g_d_losses_plot.png')
+    # Display the plot
+    pyplot.show()
+
+# Call the plot function after training is complete
+plot_losses(g_losses_per_batch, d_losses_per_batch)
 
 
 ############ SSIM #################

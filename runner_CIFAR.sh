@@ -7,4 +7,4 @@
 #SBATCH --job-name=runCIFAR
 #SBATCH -o Result_CIFAR.out
 conda activate demo
-python runGAN.py
+python CIFAR10.py

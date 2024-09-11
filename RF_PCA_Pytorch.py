@@ -47,7 +47,9 @@ X_train -= mean
 X_test -= mean
 
 #Eigen-decomposition
-U, S, V = np.linalg.svd(X_train, full_matrices=False)
+U, S, V = np.linalg.svd(X_train, full_matrices=False) 
+# Singular Value Decomposition (SVD) is used to calculate the principal components.
+# We keep only the top n_components principal components to reduce the data’s dimensionality.
 # USE TORCH
 U, S, V = torch.linalg.svd(X_train, full_matrices=False)
 components = V[:n_components]
